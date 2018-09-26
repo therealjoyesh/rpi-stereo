@@ -10,7 +10,7 @@ import Adafruit_CharLCD as LCD
 
 # variables
 run = True
-repeat = True
+repeat = False
 state = 0
 # states:
 # 0 - File Explorer
@@ -62,11 +62,13 @@ def lcd_update():
             rnge = range(selected, selected+1)
         
         # render
+        index = 0
         for x in rnge:
             if len(dirlist[x]) > 16:
-                renderscrolltext(dirlist[x] + '\n', 0, 1)
+                renderscrolltext(dirlist[x] + '\n', 0, index)
             else:
                 lcd.message(dirlist[x] + '\n')
+            index + 1
 
     if state == 1:
         lcd.clear()
