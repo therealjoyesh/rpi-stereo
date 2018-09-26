@@ -70,7 +70,7 @@ def lcd_update():
         index = 0
         for x in rnge:
             if len(dirlist[x]) > 16:
-                renderscrolltext(dirlist[x] + '\n', 0, index)
+                lcd.message(dirlist[x][0:15] + '\n')
             else:
                 lcd.message(dirlist[x] + '\n')
             index + 1
@@ -113,14 +113,22 @@ lcd_update()
 
 # MAIN UPDATE
 while run:
+    # check if playing state has changed, if it has, update lcd
     if not PreviousPlayingState == player.is_playing():
         lcd_update()
+    # if backlight state has changed, update backlight
     if not PreviousBacklightState == backlight:
         if backlight:
             lcd.set_color(1,1,1)
         else:
             lcd.set_color(0,0,0)
-
+    
+    # repeat code to see if music needs to restart
+    if repeat:
+        if player.get_position() == 1.0:
+            player.stop()
+            player.play()
+    
     PreviousBacklightState = backlight
     PreviousPlayingState = player.is_playing()
     if lcd.is_pressed(LCD.SELECT):
