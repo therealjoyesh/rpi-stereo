@@ -10,6 +10,7 @@ import Adafruit_CharLCD as LCD
 
 # variables
 run = True
+repeat = True
 state = 0
 # states:
 # 0 - File Explorer
@@ -27,10 +28,13 @@ lcd = LCD.Adafruit_CharLCDPlate()
 lcd.create_char(1, [2,3,3,2,14,30,12,0])
 # pause icon
 lcd.create_char(2, [0,27,27,27,27,27,27,0])
+# repeat icon (2 characters)
+lcd.create_char(3, [3,4,0,4,14,31,4,3])
+lcd.create_char(4, [24,4,31,14,4,0,4,24])
 
 # STARTUP SEQUENCE
 
-lcd.set_color(0.5, 0.5, 0.5)
+lcd.set_color(1, 1, 1)
 
 lcd.clear()
 
@@ -40,6 +44,12 @@ lcd.clear()
 lcd.message("Version 1.0")
 time.sleep(3)
 lcd.clear()
+
+# scrolling text for long filenames
+def renderscrolltext(text, cx, cy):
+    if len(text) < 32:
+        lcd.set_cursor(cx, cy)
+        lcd.message(text[0:15])
 
 # LCD UPDATE
 def lcd_update():
@@ -54,7 +64,7 @@ def lcd_update():
         # render
         for x in rnge:
             if len(dirlist[x]) > 16:
-                lcd.message(dirlist[x] + '\n')
+                renderscrolltext(dirlist[x] + '\n', 0, 1)
             else:
                 lcd.message(dirlist[x] + '\n')
 
@@ -64,6 +74,10 @@ def lcd_update():
             lcd.message("\x01 Now Playing\n" + filename)
         else:
             lcd.message("\x02 Paused\n" + filename)
+        if repeat:
+            lcd.set_cursor(14,0)
+            lcd.message("\x03\x04")
+
 
 dirlist = os.listdir(path)
 dirlist.insert(0, "..")
