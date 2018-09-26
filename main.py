@@ -57,6 +57,8 @@ def repeatcheck():
             player.stop()
             player.play()
 
+        time.sleep(0.01)
+
 # spawn repeat thread (this is to allow for more fine-grained checking of repeat)
 repthread = threading.Thread(target=repeatcheck)
 repthread.start()
@@ -124,7 +126,6 @@ lcd_update()
 
 # MAIN UPDATE
 while run:
-    print(player.get_position())
     # check if playing state has changed, if it has, update lcd
     if not PreviousPlayingState == player.is_playing():
         lcd_update()
