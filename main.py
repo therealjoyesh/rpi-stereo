@@ -7,6 +7,7 @@ import vlc
 import time
 import os
 import Adafruit_CharLCD as LCD
+import threading
 
 # variables
 settings=["Backlight", "Repeat"]
@@ -49,6 +50,16 @@ lcd.message("Version 1.0")
 time.sleep(3)
 lcd.clear()
 
+def repeatcheck():
+    while run:
+        # cannot check to 1.0 because some songs end before it registers as 100%
+        if repeat and player.get_position() >= 0.999:
+            player.stop()
+            player.play()
+
+# spawn repeat thread (this is to allow for more fine-grained checking of repeat)
+repthread = threading.Thread(target=repeatcheck)
+repthread.start()
 # scrolling text for long filenames
 def renderscrolltext(text, cx, cy):
     if len(text) < 32:
@@ -113,6 +124,7 @@ lcd_update()
 
 # MAIN UPDATE
 while run:
+    print(player.get_position())
     # check if playing state has changed, if it has, update lcd
     if not PreviousPlayingState == player.is_playing():
         lcd_update()
@@ -122,12 +134,6 @@ while run:
             lcd.set_color(1,1,1)
         else:
             lcd.set_color(0,0,0)
-    
-    # repeat code to see if music needs to restart
-    if repeat:
-        if player.get_position() == 1.0:
-            player.stop()
-            player.play()
     
     PreviousBacklightState = backlight
     PreviousPlayingState = player.is_playing()
