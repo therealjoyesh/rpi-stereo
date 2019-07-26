@@ -1,31 +1,43 @@
-# RPi Stereo 1.0
+# RPi Stereo 1.2
 # Programmed by Joyesh
 # For use with a Adafruit 16x2 lcd plate with a Raspberry Pi
 
 # imports
+# audio related
 import vlc
+import alsaaudio
+# some other related stuff
 import time
 import os
-import Adafruit_CharLCD as LCD
 import threading
+# screen
+import Adafruit_CharLCD as LCD
 
 # variables
-settings=["Backlight", "Repeat"]
+settings=["Backlight", "Repeat", "Volume", "Exit"]
 run = True
 PreviousPlayingState = False
 PreviousBacklightState = True
 repeat = False
+stopbyuser = False
 backlight = True
 state = 0
 # states:
 # 0 - File Explorer
 # 1 - Player Info
 # 2 - Settings
+
+# audio stuff
 player = vlc.MediaPlayer()
+mixer = alsaaudio.Mixer()
+vol = int(mixer.getvolume()[0])
+# file explorer variables
 path = "/mnt/usb"
 dirlist = []
 filename = ""
+# menu variables
 selected = 0
+# lcd
 lcd = LCD.Adafruit_CharLCDPlate()
 
 # custom charactrs
@@ -43,30 +55,25 @@ lcd.set_color(1, 1, 1)
 
 lcd.clear()
 
-lcd.message("RPiStereo by\nJoyesh")
+lcd.message("RPiStereo by\nJ0SH")
 time.sleep(3)
 lcd.clear()
-lcd.message("Version 1.0")
+lcd.message("Version 1.2")
 time.sleep(3)
 lcd.clear()
 
 def repeatcheck():
     while run:
         # cannot check to 1.0 because some songs end before it registers as 100%
-        if repeat and player.get_position() >= 0.999:
+        if repeat and player.get_position() > 0.995:
             player.stop()
             player.play()
-
+        # prevent lcd lag (running a while loop with no sleep causes a lot of stress on the CPU)
         time.sleep(0.01)
 
 # spawn repeat thread (this is to allow for more fine-grained checking of repeat)
 repthread = threading.Thread(target=repeatcheck)
 repthread.start()
-# scrolling text for long filenames
-def renderscrolltext(text, cx, cy):
-    if len(text) < 32:
-        #lcd.set_cursor(cx, cy)
-        lcd.message(text[0:15])
 
 # LCD UPDATE
 def lcd_update():
@@ -82,8 +89,9 @@ def lcd_update():
         # render
         index = 0
         for x in rnge:
+            print(index)
             if len(dirlist[x]) > 16:
-                lcd.message(dirlist[x][0:15] + '\n')
+                lcd.message(dirlist[x][:16])
             else:
                 lcd.message(dirlist[x] + '\n')
             index + 1
@@ -119,6 +127,8 @@ def lcd_update():
                 else:
                     lcd.message(" off\n")
 
+            elif settings[x] == "Volume":
+                lcd.message(" " + str(vol) + "\n")
 
 dirlist = os.listdir(path)
 dirlist.insert(0, "..")
@@ -162,20 +172,43 @@ while run:
                 # initalize VLC media player
                 player = vlc.MediaPlayer(path + filename)
                 player.play()
+                #set stop by user to false just incase was stopped by user before
+                stopbyuser = False
                 # set state to player info
                 state = 1
         
         elif state == 1:
             if player.is_playing():
+                stopbyuser = True
                 player.pause()
             else:
                 player.play()
+                stopbyuser = False
 
         elif state == 2:
             if settings[selected] == "Backlight":
                 backlight = not backlight
             if settings[selected] == "Repeat":
                 repeat = not repeat
+            if settings[selected] == "Volume":
+                if vol == 0:
+                    vol = 25
+                    mixer.setvolume(25)
+                elif vol == 25:
+                    vol = 50
+                    mixer.setvolume(50)
+                elif vol == 50:
+                    vol = 75
+                    mixer.setvolume(75)
+                elif vol == 75:
+                    vol = 100
+                    mixer.setvolume(100)
+                elif vol == 100:
+                    vol = 0
+                    mixer.setvolume(0)
+
+            if settings[selected] == "Exit":
+                run = not run
 
         lcd_update()
     
@@ -183,6 +216,7 @@ while run:
         # STOP
         if state == 1:
             # stop player, reset selected index and state.
+            stopbyuser = True
             player.stop()
             selected = 0
             state = 0
@@ -200,6 +234,10 @@ while run:
     elif lcd.is_pressed(LCD.DOWN):
         # DOWN IN MENU
         # if selected + 1 is not out of list range
+        #if not t1._stopevent.isSet():
+            #t1.join()
+        #if not t2._stopevent.isSet():
+            #t2.join()
         if state == 0:
             if selected + 1 <= len(os.listdir(path)):
                 selected = selected + 1
@@ -222,3 +260,8 @@ while run:
 
     time.sleep(0.1)
 
+lcd.clear()
+lcd.message("Exiting")
+time.sleep(3)
+lcd.clear()
+lcd.message("To turn back on,\n you must reboot")
